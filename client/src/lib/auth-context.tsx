@@ -98,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     setShowProfileDrawer(false);
     setShowWalletDrawer(false);
+    window.location.reload();
   };
 
   return (
