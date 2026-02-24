@@ -32,8 +32,7 @@ export default defineConfig({
             if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('framer-motion')) return 'vendor-motion';
             if (id.includes('@radix-ui')) return 'vendor-ui';
-            if (id.includes('react') || id.includes('react-dom') || id.includes('wouter')) return 'vendor-core';
-            return 'vendor-libs';
+            return 'vendor';
           }
         },
       },
