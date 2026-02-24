@@ -12,6 +12,14 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { getParentServices, getServicesByParent } from "@/lib/services";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import logoImg from "@assets/city-cares-logo-v2.png";
 
 import { ProfileDrawer } from "./profile-drawer";
@@ -21,7 +29,7 @@ import { WalletDrawer } from "./wallet-drawer";
 export function Header() {
   const { itemCount, setIsOpen } = useCart();
 
-  const { user, login, sendOtp, showLoginModal, setShowLoginModal, logout, setShowProfileDrawer, showBookingsDrawer, setShowBookingsDrawer, showWalletDrawer, setShowWalletDrawer } = useAuth();
+  const { user, login, sendOtp, showLoginModal, setShowLoginModal, logout, setShowProfileDrawer, showBookingsDrawer, setShowBookingsDrawer, showWalletDrawer, setShowWalletDrawer, loginReason, setLoginReason } = useAuth();
   const [, navigate] = useLocation();
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -32,7 +40,7 @@ export function Header() {
   const [addressLine2, setAddressLine2] = useState("");
   const [latitude, setLatitude] = useState<number | string>("");
   const [longitude, setLongitude] = useState<number | string>("");
-  const [userAddress, setUserAddress] = useState("Bhubaneswar, Odisha");
+  const [userAddress, setUserAddress] = useState("Select location");
   const [error, setError] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -90,7 +98,7 @@ export function Header() {
           const data = await res.json();
           if (data.success && data.data.records?.length > 0) {
             const addr = data.data.records[0];
-            setUserAddress(addr.addressLine2 || addr.addressLine1 || "Bhubaneswar, Odisha");
+            setUserAddress(addr.addressLine2 || addr.addressLine1 || "Select location");
           }
         } catch (error) {
           console.error("Failed to fetch user address", error);
@@ -98,7 +106,7 @@ export function Header() {
       };
       fetchAddress();
     } else {
-      setUserAddress("Bhubaneswar, Odisha");
+      setUserAddress("Select location");
     }
   }, [user]);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -131,6 +139,7 @@ export function Header() {
 
   const closeLoginModal = () => {
     setShowLoginModal(false);
+    setLoginReason(null);
     setStep("phone");
     setOtp("");
     setPhone("");
@@ -152,6 +161,7 @@ export function Header() {
         setStep("details");
       } else {
         closeLoginModal();
+        window.location.reload();
       }
     } catch (error: any) {
       console.error(error);
@@ -276,6 +286,7 @@ export function Header() {
       if (!res.ok) throw new Error("Failed to add address");
 
       closeLoginModal();
+      window.location.reload();
     } catch (error) {
       console.error(error);
     } finally {
@@ -315,31 +326,7 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            {/* My Bookings Button */}
-            {user && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative hover:bg-secondary hidden sm:flex"
-                  onClick={() => setShowBookingsDrawer(true)}
-                  title="My Bookings"
-                >
-                  <Calendar className="h-5 w-5" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative hover:bg-secondary hidden sm:flex"
-                  onClick={() => setShowWalletDrawer(true)}
-                  title="My Wallet"
-                >
-                  <Wallet className="h-5 w-5" />
-                </Button>
-              </>
-            )}
-
+            {/* Cart Button */}
             <Button
               variant="outline"
               size="icon"
@@ -366,20 +353,55 @@ export function Header() {
               </AnimatePresence>
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-10 w-10"
-              onClick={() => {
-                if (user) {
-                  setShowProfileDrawer(true);
-                } else {
-                  setShowLoginModal(true);
-                }
-              }}
-            >
-              <User className="h-5 w-5" />
-            </Button>
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-10 w-10 border-border hover:bg-secondary transition-all"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mt-2">
+                {user ? (
+                  <>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.fullName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.phoneNo}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowProfileDrawer(true)} className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>My Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowBookingsDrawer(true)} className="cursor-pointer">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      <span>My Bookings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowWalletDrawer(true)} className="cursor-pointer">
+                      <Wallet className="mr-2 h-4 w-4" />
+                      <span>My Wallet</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                      <X className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => setShowLoginModal(true)} className="cursor-pointer font-medium py-3 text-primary">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Login</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
 
 
@@ -522,7 +544,9 @@ export function Header() {
             {step === "phone" ? (
               <>
                 <div className="text-center mb-6">
-                  <p className="text-gray-600 text-sm">Welcome! Let's get started with your phone number.</p>
+                  <p className="text-gray-600 text-sm">
+                    {loginReason || "Welcome! Let's get started with your phone number."}
+                  </p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">

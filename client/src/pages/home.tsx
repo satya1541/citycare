@@ -6,6 +6,9 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { Footer } from "@/components/footer";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getParentServices, getServicesByParent, getImageUrl, Service } from "@/lib/services";
 
 import { AppLoader } from "@/components/ui/app-loader";
@@ -17,6 +20,7 @@ interface ServiceSection {
 }
 
 export default function Home() {
+  const { isAuthenticated, setShowLoginModal } = useAuth();
   const [sections, setSections] = useState<ServiceSection[]>([]);
   const [parents, setParents] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +113,25 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">No services available yet.</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center space-y-4 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-primary/20">
+                {!isAuthenticated ? (
+                  <>
+                    <p className="text-muted-foreground font-medium max-w-xs">
+                      Login to discover the most popular services booked by users near you.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="h-10 px-6 rounded-full border-primary/20 hover:bg-primary/5 text-primary font-medium transition-all"
+                      onClick={() => setShowLoginModal(true)}
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Login / Sign up
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">No services available yet.</p>
+                )}
+              </div>
             )}
           </div>
         </section>

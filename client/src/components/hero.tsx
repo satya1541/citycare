@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { Star, ShieldCheck, Clock, CheckCircle2, Wrench } from "lucide-react";
+import { Star, ShieldCheck, Clock, CheckCircle2, Wrench, LogIn } from "lucide-react";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
 import beautyImg from "@assets/beauty.png";
 import kitchenImg from "@assets/kitchen.png";
 import massageImg from "@assets/massage.png";
@@ -9,6 +11,7 @@ import { useEffect, useState } from "react";
 import { getParentServices, Service, getImageUrl } from "@/lib/services";
 
 export function Hero() {
+  const { isAuthenticated, setShowLoginModal } = useAuth();
   const [categories, setCategories] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,8 +99,25 @@ export function Hero() {
                 ))
               )}
               {!loading && displayCategories.length === 0 && (
-                <div className="col-span-full text-center text-sm text-muted-foreground">
-                  No services found.
+                <div className="col-span-full py-6 flex flex-col items-center justify-center text-center space-y-3">
+                  {!isAuthenticated ? (
+                    <>
+                      <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px]">
+                        Please login for personalized service according to your Location
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-4 rounded-full border-primary/20 hover:bg-primary/5 text-primary font-medium transition-all"
+                        onClick={() => setShowLoginModal(true)}
+                      >
+                        <LogIn className="w-4 h-4 mr-2" />
+                        Login / Sign up
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No services found.</p>
+                  )}
                 </div>
               )}
             </div>

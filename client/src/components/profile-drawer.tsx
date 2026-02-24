@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { User, Phone, LogOut, MapPin, Edit2, Trash2, AlertTriangle, Crosshair, Plus, BadgeCheck, Loader2, ArrowLeft, Camera, Gift, Copy, Check, Star } from "lucide-react";
+import { User, Phone, LogOut, MapPin, Edit2, Trash2, AlertTriangle, Crosshair, Plus, BadgeCheck, Loader2, ArrowLeft, Camera, Gift, Copy, Check, Star, TrendingUp } from "lucide-react";
 import { sendEmailOtp, validateEmailOtp, updateCustomerProfile, uploadCustomerProfilePicture, getImageUrl, getReferralCode, applyReferralCode, setDefaultAddress, getCustomerRatings } from "@/lib/services";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 
 export function ProfileDrawer() {
@@ -88,6 +89,7 @@ export function ProfileDrawer() {
     const [referralCodeInput, setReferralCodeInput] = useState("");
     const [isApplyingReferral, setIsApplyingReferral] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [referralError, setReferralError] = useState<string | null>(null);
 
     // Ratings State
     const [myRatings, setMyRatings] = useState<any[]>([]);
@@ -228,11 +230,12 @@ export function ProfileDrawer() {
     };
 
     const handleSendEmailOtp = async () => {
-        if (!user?.email) return;
+        const emailToVerify = userDetails?.email || user?.email;
+        if (!user?.id || !emailToVerify) return;
         setIsSendingOtp(true);
         setEmailError(null);
         try {
-            const res = await sendEmailOtp(user.id, user.email);
+            const res = await sendEmailOtp(user.id, emailToVerify);
             if (res.success) {
                 setShowEmailOtpDialog(true);
             } else {
@@ -465,16 +468,19 @@ export function ProfileDrawer() {
         if (!referralCodeInput.trim()) return;
 
         setIsApplyingReferral(true);
+        setReferralError(null);
         try {
-            const res = await applyReferralCode(referralCodeInput.trim());
+            const res = await applyReferralCode(user?.id ?? 0, referralCodeInput.trim());
             if (res.success) {
                 toast({ title: "Success!", description: "Referral code applied successfully." });
                 setReferralCodeInput("");
                 fetchUserDetails(); // Refresh to show updated referredBy status if the API provides it
             } else {
+                setReferralError(res.message || "Failed to apply code");
                 toast({ title: "Failed to apply code", description: res.message, variant: "destructive" });
             }
         } catch (error: any) {
+            setReferralError(error.message || "Something went wrong.");
             toast({ title: "Error", description: error.message || "Something went wrong.", variant: "destructive" });
         } finally {
             setIsApplyingReferral(false);
@@ -660,9 +666,17 @@ export function ProfileDrawer() {
 
                         {/* Refer and Earn Section */}
                         <div className="space-y-4 pt-2">
-                            <div className="flex items-center gap-2 text-foreground border-b pb-2">
-                                <Gift className="w-5 h-5 text-indigo-600" />
-                                <h3 className="font-semibold">Refer & Earn</h3>
+                            <div className="flex items-center justify-between border-b pb-2">
+                                <div className="flex items-center gap-2 text-foreground">
+                                    <Gift className="w-5 h-5 text-primary" />
+                                    <h3 className="font-semibold">Refer & Earn</h3>
+                                </div>
+                                {userDetails?.points !== undefined && (
+                                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-100">
+                                        <TrendingUp className="w-3.5 h-3.5 text-yellow-600" />
+                                        <span className="text-xs font-bold text-yellow-700">{userDetails.points} Points</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4">
@@ -701,9 +715,15 @@ export function ProfileDrawer() {
                                     <form onSubmit={handleApplyReferral} className="flex gap-2">
                                         <Input
                                             placeholder="Enter code"
-                                            className="h-10 text-sm font-mono uppercase"
+                                            className={cn(
+                                                "h-10 text-sm font-mono uppercase",
+                                                referralError && "border-red-500 focus-visible:ring-red-500"
+                                            )}
                                             value={referralCodeInput}
-                                            onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                                            onChange={(e) => {
+                                                setReferralCodeInput(e.target.value.toUpperCase());
+                                                setReferralError(null);
+                                            }}
                                         />
                                         <Button
                                             type="submit"
@@ -713,6 +733,11 @@ export function ProfileDrawer() {
                                             {isApplyingReferral ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
                                         </Button>
                                     </form>
+                                    {referralError && (
+                                        <p className="text-xs text-red-500 mt-2 font-medium bg-red-50 p-2 rounded border border-red-100 animate-in fade-in slide-in-from-top-1">
+                                            {referralError}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -955,7 +980,7 @@ export function ProfileDrawer() {
                         <DialogHeader>
                             <DialogTitle>Verify Email</DialogTitle>
                             <DialogDescription>
-                                Enter the OTP sent to {user?.email}
+                                Enter the OTP sent to {userDetails?.email || user?.email}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">

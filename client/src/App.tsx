@@ -53,11 +53,11 @@ function Router() {
       <Switch>
         <Route path="/login" component={LoginPage} />
 
-        <ProtectedRoute path="/" component={Home} />
+        <Route path="/" component={Home} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
-        <ProtectedRoute path="/category/:slug" component={Category} />
-        <ProtectedRoute path="/service/:id" component={ServiceListing} />
+        <Route path="/category/:slug" component={Category} />
+        <Route path="/service/:id" component={ServiceListing} />
         <ProtectedRoute path="/checkout" component={Checkout} />
 
         <ProtectedRoute path="/booking-success" component={BookingSuccess} />

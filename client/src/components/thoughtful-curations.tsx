@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAuth } from "@/lib/auth-context";
 
 interface CurationItem {
   id: number;
@@ -79,6 +80,7 @@ const curations: CurationItem[] = [
 ];
 
 export function ThoughtfulCurations() {
+  const { isAuthenticated, setShowLoginModal, setLoginReason } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<CurationItem | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -207,6 +209,11 @@ export function ThoughtfulCurations() {
                     className="flex-shrink-0 cursor-pointer"
                     style={{ width: '288px' }}
                     onClick={() => {
+                      if (!isAuthenticated) {
+                        setLoginReason("Please login for best services according to your location");
+                        setShowLoginModal(true);
+                        return;
+                      }
                       setIsMuted(true);
                       setSelectedVideo(item);
                     }}

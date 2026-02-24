@@ -1,0 +1,202 @@
+{
+    "parents": [
+        {
+            "id": 1,
+            "name": "AC Repair",
+            "description": "Expert AC services for your home",
+            "imagePath": "assets/ac_repair_1771322289.jpg",
+            "parentId": null
+        },
+        {
+            "id": 2,
+            "name": "Cleaning",
+            "description": "Professional home cleaning services",
+            "imagePath": "assets/cleaning_1771322289.jpg",
+            "parentId": null
+        },
+        {
+            "id": 3,
+            "name": "Plumber",
+            "description": "Experienced plumbers at your doorstep",
+            "imagePath": "assets/plumber_1771322289.jpg",
+            "parentId": null
+        },
+        {
+            "id": 4,
+            "name": "Electrician",
+            "description": "Certified electricians for all repairs",
+            "imagePath": "assets/electrician_1771322289.jpg",
+            "parentId": null
+        },
+        {
+            "id": 5,
+            "name": "Salon",
+            "description": "Premium beauty services at home",
+            "imagePath": "assets/salon_1771322289.jpg",
+            "parentId": null
+        },
+        {
+            "id": 6,
+            "name": "Appliances",
+            "description": "Repair services for all home appliances",
+            "imagePath": "assets/appliances_1771322289.jpg",
+            "parentId": null
+        }
+    ],
+    "children": {
+        "1": [
+            {
+                "id": 101,
+                "name": "AC Service",
+                "description": "Regular AC maintenance and cleaning",
+                "imagePath": "assets/ac_service_1771322289.jpg",
+                "parentId": 1
+            },
+            {
+                "id": 102,
+                "name": "AC Repair",
+                "description": "Fix cooling issues and gas leaks",
+                "imagePath": "assets/ac_repair_deep_1771322289.jpg",
+                "parentId": 1
+            }
+        ],
+        "2": [
+            {
+                "id": 201,
+                "name": "Full Home Cleaning",
+                "description": "Deep cleaning for your entire house",
+                "imagePath": "assets/deep_clean_1771322289.jpg",
+                "parentId": 2
+            },
+            {
+                "id": 202,
+                "name": "Kitchen Cleaning",
+                "description": "Specialized cleaning for your kitchen",
+                "imagePath": "assets/kitchen_clean_1771322289.jpg",
+                "parentId": 2
+            }
+        ],
+        "3": [
+            {
+                "id": 301,
+                "name": "Tap Repair",
+                "description": "Fix leaking taps and faucets",
+                "imagePath": "assets/tap_repair_1771322289.jpg",
+                "parentId": 3
+            },
+            {
+                "id": 302,
+                "name": "Drainage Cleaning",
+                "description": "Unblock drains and pipes",
+                "imagePath": "assets/drain_clean_1771322289.jpg",
+                "parentId": 3
+            }
+        ],
+        "4": [
+            {
+                "id": 401,
+                "name": "Switch Repair",
+                "description": "Fix broken switches and sockets",
+                "imagePath": "assets/switch_repair_1771322289.jpg",
+                "parentId": 4
+            },
+            {
+                "id": 402,
+                "name": "Fan Installation",
+                "description": "Professional ceiling fan setup",
+                "imagePath": "assets/fan_install_1771322289.jpg",
+                "parentId": 4
+            }
+        ],
+        "5": [
+            {
+                "id": 501,
+                "name": "Haircut",
+                "description": "Stylish haircuts for men and women",
+                "imagePath": "assets/haircut_1771322289.jpg",
+                "parentId": 5
+            },
+            {
+                "id": 502,
+                "name": "Facial",
+                "description": "Rejuvenating skin treatments",
+                "imagePath": "assets/facial_1771322289.jpg",
+                "parentId": 5
+            }
+        ],
+        "6": [
+            {
+                "id": 601,
+                "name": "Washing Machine Repair",
+                "description": "Fix all laundry machine issues",
+                "imagePath": "assets/washing_machine_1771322289.jpg",
+                "parentId": 6
+            },
+            {
+                "id": 602,
+                "name": "Refrigerator Repair",
+                "description": "Fix cooling and compressor issues",
+                "imagePath": "assets/fridge_repair_1771322289.jpg",
+                "parentId": 6
+            }
+        ]
+    },
+    "menus": {
+        "101": [
+            {
+                "subcategoryId": 1001,
+                "subcategoryTitle": "Routine Service",
+                "subcategoryDescription": "Regular maintenance for peak performance",
+                "subcategoryImagePath": "assets/ac_service_1771322289.jpg",
+                "items": [
+                    {
+                        "id": 10001,
+                        "title": "Split AC Service",
+                        "description": "Complete coil cleaning and checkup",
+                        "basePriceInPaisa": 49900,
+                        "imagePath": "assets/split_ac_service.jpg",
+                        "serviceId": 101,
+                        "isActive": true
+                    },
+                    {
+                        "id": 10002,
+                        "title": "Window AC Service",
+                        "description": "Deep cleaning and filter wash",
+                        "basePriceInPaisa": 39900,
+                        "imagePath": "assets/window_ac_service.jpg",
+                        "serviceId": 101,
+                        "isActive": true
+                    }
+                ]
+            }
+        ],
+        "201": [
+            {
+                "subcategoryId": 2001,
+                "subcategoryTitle": "Deep Cleaning",
+                "subcategoryDescription": "Corner to corner cleaning",
+                "subcategoryImagePath": "assets/deep_clean_1771322289.jpg",
+                "items": [
+                    {
+                        "id": 20001,
+                        "title": "1 BHK Deep Cleaning",
+                        "description": "Covers hall, kitchen, bathroom",
+                        "basePriceInPaisa": 249900,
+                        "imagePath": "assets/1bhk_clean.jpg",
+                        "serviceId": 201,
+                        "isActive": true
+                    },
+                    {
+                        "id": 20002,
+                        "title": "2 BHK Deep Cleaning",
+                        "description": "Full house deep cleaning",
+                        "basePriceInPaisa": 349900,
+                        "imagePath": "assets/2bhk_clean.jpg",
+                        "serviceId": 201,
+                        "isActive": true
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -27,6 +27,8 @@ type AuthContextType = {
   setShowBookingsDrawer: (show: boolean) => void;
   showWalletDrawer: boolean;
   setShowWalletDrawer: (show: boolean) => void;
+  loginReason: string | null;
+  setLoginReason: (reason: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showBookingsDrawer, setShowBookingsDrawer] = useState(false);
   const [showWalletDrawer, setShowWalletDrawer] = useState(false);
+  const [loginReason, setLoginReason] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
 
   const sendOtp = async (phone: string) => {
@@ -113,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setShowBookingsDrawer,
         showWalletDrawer,
         setShowWalletDrawer,
+        loginReason,
+        setLoginReason,
       }}
     >
       {children}

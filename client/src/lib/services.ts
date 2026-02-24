@@ -37,35 +37,52 @@ export const getConfig = () => {
     };
 };
 
+// Helper for catalog fallback
+async function fetchCatalog(url: string, localUrl: string) {
+    try {
+        const res = await fetch(url, getConfig());
+        if (res.status === 401) throw new Error("Unauthorized");
+        const data = await res.json();
+        return data.success ? data.data : [];
+    } catch {
+        const res = await fetch(localUrl);
+        const data = await res.json();
+        return data.success ? data.data : [];
+    }
+}
+
 export const getParentServices = async (): Promise<Service[]> => {
-    const res = await fetch(`${API_BASE_URL}/services/parents`, getConfig());
-    const data = await res.json();
-    return data.success ? data.data : [];
+    return fetchCatalog(`${API_BASE_URL}/services/parents`, "/api/catalog/parents");
 };
 
 export const getServicesByParent = async (parentId: number): Promise<Service[]> => {
-    const res = await fetch(`${API_BASE_URL}/services/by-parent/${parentId}`, getConfig());
-    const data = await res.json();
-    return data.success ? data.data : [];
+    return fetchCatalog(`${API_BASE_URL}/services/by-parent/${parentId}`, `/api/catalog/by-parent/${parentId}`);
 };
 
 export const getServiceMenusGrouped = async (serviceId: number): Promise<ServiceGroupedBySubcategory[]> => {
-    const res = await fetch(`${API_BASE_URL}/service-menus/grouped-by-subcategory?serviceId=${serviceId}`, getConfig());
-    const data = await res.json();
-    return data.success ? data.data : [];
+    return fetchCatalog(`${API_BASE_URL}/service-menus/grouped-by-subcategory?serviceId=${serviceId}`, `/api/catalog/menus-grouped?serviceId=${serviceId}`);
 };
 
 export const getServiceById = async (id: number): Promise<Service | null> => {
-    const res = await fetch(`${API_BASE_URL}/services/${id}`, getConfig());
-    const data = await res.json();
-    return data.success ? data.data : null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/services/${id}`, getConfig());
+        if (res.status === 401) throw new Error("Unauthorized");
+        const data = await res.json();
+        return data.success ? data.data : null;
+    } catch {
+        const res = await fetch(`/api/catalog/service/${id}`);
+        const data = await res.json();
+        return data.success ? data.data : null;
+    }
 };
 
 export const getImageUrl = (path: string | null | undefined) => {
-    if (!path) return "/placeholder.jpg"; // You might want a better placeholder
+    if (!path) return "/placeholder.jpg";
     if (path.startsWith("http")) return path;
+    if (path.startsWith("assets/")) return `/${path}`; // Local mock assets
     return `${S3_BASE_URL}${path}`;
 };
+
 export interface Address {
     id: number;
     userId: number;
@@ -84,23 +101,10 @@ export const getUserAddresses = async (userId: number): Promise<Address[]> => {
     try {
         const res = await fetch(`${API_BASE_URL}/addresses/${userId}`, getConfig());
         const data = await res.json();
-
-        // Handle raw array response
-        if (Array.isArray(data)) {
-            return data;
-        }
-
-        // Handle success=false explicitly
+        if (Array.isArray(data)) return data;
         if (data.success === false) return [];
-
-        if (Array.isArray(data.data)) {
-            return data.data;
-        }
-
-        if (data.data && Array.isArray(data.data.records)) {
-            return data.data.records;
-        }
-
+        if (Array.isArray(data.data)) return data.data;
+        if (data.data && Array.isArray(data.data.records)) return data.data.records;
         return [];
     } catch (error) {
         console.error("Error fetching addresses:", error);
@@ -164,7 +168,6 @@ export const updateCustomerProfile = async (
 export const uploadCustomerProfilePicture = async (userId: number, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-
     const token = localStorage.getItem("token");
     const res = await fetch(`${API_BASE_URL}/users/${userId}/customer/upload`, {
         method: "PUT",
@@ -179,17 +182,14 @@ export const uploadCustomerProfilePicture = async (userId: number, file: File) =
 // Wallet APIs
 export const getWalletBalance = async (userId: number) => {
     const res = await fetch(`${API_BASE_URL}/wallets/${userId}/balance`, getConfig());
-    // Fallback if the user has no wallet created yet
     if (res.status === 404) return { success: true, data: { balanceInPaisa: 0 } };
     const data = await res.json();
     let balanceInPaisa = 0;
-
     if (data.balanceInPaisa !== undefined) {
         balanceInPaisa = data.balanceInPaisa;
     } else if (data.data?.balanceInPaisa !== undefined) {
         balanceInPaisa = data.data.balanceInPaisa;
     }
-
     return { success: data.success ?? true, data: { balanceInPaisa } };
 };
 
@@ -232,11 +232,11 @@ export const getReferralCode = async () => {
     return await res.json();
 };
 
-export const applyReferralCode = async (code: string) => {
+export const applyReferralCode = async (userId: number, code: string) => {
     const res = await fetch(`${API_BASE_URL}/referrals/apply`, {
         ...getConfig(),
         method: "POST",
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ userId, referralCode: code }),
     });
     return await res.json();
 };

@@ -1,4 +1,5 @@
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-context";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +9,7 @@ import emptyCartImg from "@assets/empty_cart_illustration.png";
 
 export function CartDrawer() {
   const { items, isOpen, setIsOpen, updateQuantity, total, itemCount, error, clearError } = useCart();
+  const { isAuthenticated, setShowLoginModal } = useAuth();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -28,14 +30,21 @@ export function CartDrawer() {
               <img src={emptyCartImg} alt="Empty Cart" className="w-40 h-auto mb-2 mix-blend-multiply" />
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-foreground">Your cart is empty</h3>
-                <p className="text-muted-foreground text-sm">Lets add some services</p>
+                <p className="text-muted-foreground text-sm">
+                  {isAuthenticated ? "Lets add some services" : "Please login to add services to cart"}
+                </p>
               </div>
               <Button
                 variant="outline"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setShowLoginModal(true);
+                  }
+                  setIsOpen(false);
+                }}
                 className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover:text-primary px-8"
               >
-                Explore services
+                {isAuthenticated ? "Explore services" : "Login / Sign up"}
               </Button>
             </div>
           ) : (

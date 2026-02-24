@@ -1,5 +1,6 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Header } from "@/components/header";
+import { useAuth } from "@/lib/auth-context";
 import { CartDrawer } from "@/components/cart-drawer";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
@@ -14,6 +15,8 @@ export default function ServiceListing() {
     const { id } = useParams();
     const serviceId = parseInt(id || "0");
     const { addItem, items, total, updateQuantity, setIsOpen } = useCart();
+    const { isAuthenticated, setShowLoginModal } = useAuth();
+    const [, navigate] = useLocation();
 
     const [service, setService] = useState<Service | null>(null);
     const [groupedMenus, setGroupedMenus] = useState<ServiceGroupedBySubcategory[]>([]);
@@ -365,11 +368,20 @@ export default function ServiceListing() {
                                 )}
                             </div>
 
-                            <Link href="/checkout" className="block w-full mt-4">
-                                <Button className="w-full" size="lg" disabled={total === 0}>
-                                    {total === 0 ? "Add items to cart" : "Proceed to Checkout"}
-                                </Button>
-                            </Link>
+                            <Button
+                                className="w-full mt-4"
+                                size="lg"
+                                disabled={total === 0}
+                                onClick={() => {
+                                    if (!isAuthenticated) {
+                                        setShowLoginModal(true);
+                                    } else {
+                                        navigate("/checkout");
+                                    }
+                                }}
+                            >
+                                {total === 0 ? "Add items to cart" : "Proceed to Checkout"}
+                            </Button>
                         </div>
                     </div>
 
@@ -383,8 +395,17 @@ export default function ServiceListing() {
                         <p className="text-xs font-semibold text-muted-foreground">{items.length} item{items.length > 1 ? 's' : ''}</p>
                         <p className="text-base font-bold text-foreground">₹{total}</p>
                     </div>
-                    <Button onClick={() => setIsOpen(true)} className="bg-primary text-white font-bold h-11 px-6 shadow-sm">
-                        <ShoppingCart className="w-4 h-4 mr-2" /> View Cart
+                    <Button
+                        onClick={() => {
+                            if (!isAuthenticated) {
+                                setShowLoginModal(true);
+                            } else {
+                                setIsOpen(true);
+                            }
+                        }}
+                        className="bg-primary text-white font-bold h-11 px-6 shadow-sm"
+                    >
+                        <ShoppingCart className="w-4 h-4 mr-2" /> {isAuthenticated ? "View Cart" : "Book Now"}
                     </Button>
                 </div>
             )}
