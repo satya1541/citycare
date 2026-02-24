@@ -1,22 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { cn } from "./lib/utils";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
-import Category from "@/pages/category";
-import Checkout from "@/pages/checkout";
-
-import ServiceListing from "@/pages/service-listing";
-import BookingSuccess from "@/pages/booking-success";
-import LoginPage from "@/pages/login-page";
-import About from "@/pages/about";
-import Contact from "@/pages/contact";
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { Loader2 } from "lucide-react";
+
+// Lazy load pages for code splitting
+const Home = lazy(() => import("@/pages/home"));
+const Category = lazy(() => import("@/pages/category"));
+const Checkout = lazy(() => import("@/pages/checkout"));
+const ServiceListing = lazy(() => import("@/pages/service-listing"));
+const BookingSuccess = lazy(() => import("@/pages/booking-success"));
+const LoginPage = lazy(() => import("@/pages/login-page"));
+const About = lazy(() => import("@/pages/about"));
+const Contact = lazy(() => import("@/pages/contact"));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 function ProtectedRoute({ component: Component, ...rest }: any) {
   const { isAuthenticated, user } = useAuth();
@@ -50,20 +52,26 @@ function Router() {
       "mx-auto w-full min-h-screen relative",
       !isLoginPage && "max-w-[1280px]"
     )}>
-      <Switch>
-        <Route path="/login" component={LoginPage} />
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-[60vh] w-full">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }>
+        <Switch>
+          <Route path="/login" component={LoginPage} />
 
-        <Route path="/" component={Home} />
-        <Route path="/about" component={About} />
-        <Route path="/contact" component={Contact} />
-        <Route path="/category/:slug" component={Category} />
-        <Route path="/service/:id" component={ServiceListing} />
-        <ProtectedRoute path="/checkout" component={Checkout} />
+          <Route path="/" component={Home} />
+          <Route path="/about" component={About} />
+          <Route path="/contact" component={Contact} />
+          <Route path="/category/:slug" component={Category} />
+          <Route path="/service/:id" component={ServiceListing} />
+          <ProtectedRoute path="/checkout" component={Checkout} />
 
-        <ProtectedRoute path="/booking-success" component={BookingSuccess} />
+          <ProtectedRoute path="/booking-success" component={BookingSuccess} />
 
-        <Route component={NotFound} />
-      </Switch>
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
     </div>
   );
 }
