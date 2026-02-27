@@ -299,8 +299,8 @@ export function Header() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 max-w-[1260px] h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center">
-              <img src={logoImg} alt="City Cares" className="h-[40px] md:h-[200px] w-auto object-contain object-left md:-ml-[89px] hover:opacity-80 transition-opacity" />
+            <Link href="/" className="flex items-center relative h-16 w-[120px] md:w-auto">
+              <img src={logoImg} alt="City Cares" className="absolute top-1/2 -translate-y-1/2 h-[100px] md:h-[200px] w-auto object-contain object-left -ml-[35px] md:-ml-[89px] hover:opacity-80 transition-opacity max-w-none" />
             </Link>
           </div>
 
