@@ -120,6 +120,12 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (step === "otp" && otp.length === 4 && !isLoading) {
+      handleVerify();
+    }
+  }, [otp]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 10) return;
@@ -389,7 +395,14 @@ export function Header() {
                       <span>My Wallet</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        logout();
+                        navigate("/");
+                        window.location.reload();
+                      }}
+                      className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                    >
                       <X className="mr-2 h-4 w-4" />
                       <span>Logout</span>
                     </DropdownMenuItem>
@@ -402,8 +415,6 @@ export function Header() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-
-
 
             {/* Mobile Menu */}
             <Sheet>
@@ -426,7 +437,15 @@ export function Header() {
                       <Button onClick={() => setShowWalletDrawer(true)} variant="outline" className="w-full justify-start">
                         <Wallet className="mr-2 h-4 w-4" /> My Wallet
                       </Button>
-                      <Button onClick={logout} variant="outline" className="w-full justify-start">
+                      <Button
+                        onClick={() => {
+                          logout();
+                          navigate("/");
+                          window.location.reload();
+                        }}
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
                         <User className="mr-2 h-4 w-4" /> Logout ({user.fullName})
                       </Button>
                     </>
@@ -702,8 +721,6 @@ export function Header() {
           </div>
         </DialogContent>
       </Dialog>
-
-
 
       <ProfileDrawer />
       <BookingsDrawer open={showBookingsDrawer} onOpenChange={setShowBookingsDrawer} />

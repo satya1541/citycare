@@ -47,14 +47,14 @@ export function Footer() {
                     <div>
                         <h4 className="font-bold text-base mb-6 text-zinc-900 uppercase tracking-wider">Get the App</h4>
                         <div className="flex flex-col gap-3">
-                            <a href="#" className="flex items-center justify-center gap-2 w-full sm:w-44 h-11 bg-zinc-900 text-white rounded-lg hover:bg-primary transition-colors shadow-sm">
+                            <a href="#" className="flex items-center justify-center gap-2 w-full sm:w-44 h-11 bg-zinc-900 text-white rounded-lg hover:bg-primary transition-colors shadow-sm cursor-not-allowed opacity-80" onClick={(e) => e.preventDefault()}>
                                 <Apple className="w-5 h-5" />
                                 <div className="text-left flex flex-col justify-center">
                                     <span className="text-[10px] leading-none opacity-80">Download on the</span>
-                                    <span className="text-sm font-semibold leading-tight mt-0.5">App Store</span>
+                                    <span className="text-sm font-semibold leading-tight mt-0.5">Coming Soon</span>
                                 </div>
                             </a>
-                            <a href="#" className="flex items-center justify-center gap-2 w-full sm:w-44 h-11 bg-zinc-900 text-white rounded-lg hover:bg-primary transition-colors shadow-sm">
+                            <a href="https://play.google.com/store/apps/details?id=com.citycare&pcampaignid=web_share" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full sm:w-44 h-11 bg-zinc-900 text-white rounded-lg hover:bg-primary transition-colors shadow-sm">
                                 <Smartphone className="w-5 h-5" />
                                 <div className="text-left flex flex-col justify-center">
                                     <span className="text-[10px] leading-none opacity-80">GET IT ON</span>

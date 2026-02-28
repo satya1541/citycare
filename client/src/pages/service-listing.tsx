@@ -321,7 +321,10 @@ export default function ServiceListing() {
                                                             >-</button>
                                                             <span className="w-8 text-center text-sm font-semibold text-primary">{getItemQuantity(item.id)}</span>
                                                             <button className="w-8 h-full flex items-center justify-center text-primary font-bold hover:bg-primary/10 transition-colors"
-                                                                onClick={() => addItem({ ...item, id: item.id.toString(), menuId: item.id, name: item.title, price: item.basePriceInPaisa / 100, image: getImageUrl(item.imagePath), serviceId })}
+                                                                onClick={() => {
+                                                                    if (!isAuthenticated) return setShowLoginModal(true);
+                                                                    addItem({ ...item, id: item.id.toString(), menuId: item.id, name: item.title, price: item.basePriceInPaisa / 100, image: getImageUrl(item.imagePath), serviceId })
+                                                                }}
                                                             >+</button>
                                                         </div>
                                                     ) : (
@@ -329,7 +332,10 @@ export default function ServiceListing() {
                                                             variant="outline"
                                                             size="sm"
                                                             className="w-24 text-primary border-primary/20 hover:bg-primary/5 hover:text-primary shadow-sm bg-white font-bold"
-                                                            onClick={() => addItem({ ...item, id: item.id.toString(), menuId: item.id, name: item.title, price: item.basePriceInPaisa / 100, image: getImageUrl(item.imagePath), serviceId })}
+                                                            onClick={() => {
+                                                                if (!isAuthenticated) return setShowLoginModal(true);
+                                                                addItem({ ...item, id: item.id.toString(), menuId: item.id, name: item.title, price: item.basePriceInPaisa / 100, image: getImageUrl(item.imagePath), serviceId })
+                                                            }}
                                                         >
                                                             Add
                                                         </Button>
@@ -373,11 +379,7 @@ export default function ServiceListing() {
                                 size="lg"
                                 disabled={total === 0}
                                 onClick={() => {
-                                    if (!isAuthenticated) {
-                                        setShowLoginModal(true);
-                                    } else {
-                                        navigate("/checkout");
-                                    }
+                                    navigate("/checkout");
                                 }}
                             >
                                 {total === 0 ? "Add items to cart" : "Proceed to Checkout"}
@@ -397,15 +399,11 @@ export default function ServiceListing() {
                     </div>
                     <Button
                         onClick={() => {
-                            if (!isAuthenticated) {
-                                setShowLoginModal(true);
-                            } else {
-                                setIsOpen(true);
-                            }
+                            setIsOpen(true);
                         }}
                         className="bg-primary text-white font-bold h-11 px-6 shadow-sm"
                     >
-                        <ShoppingCart className="w-4 h-4 mr-2" /> {isAuthenticated ? "View Cart" : "Book Now"}
+                        <ShoppingCart className="w-4 h-4 mr-2" /> View Cart
                     </Button>
                 </div>
             )}

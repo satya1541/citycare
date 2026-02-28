@@ -114,23 +114,7 @@ export default function Home() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center space-y-4 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-primary/20">
-                {!isAuthenticated ? (
-                  <>
-                    <p className="text-muted-foreground font-medium max-w-xs">
-                      Login to discover the most popular services booked by users near you.
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="h-10 px-6 rounded-full border-primary/20 hover:bg-primary/5 text-primary font-medium transition-all"
-                      onClick={() => setShowLoginModal(true)}
-                    >
-                      <LogIn className="w-4 h-4 mr-2" />
-                      Login / Sign up
-                    </Button>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">No services available yet.</p>
-                )}
+                <p className="text-muted-foreground">No services available yet.</p>
               </div>
             )}
           </div>

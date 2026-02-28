@@ -340,24 +340,10 @@ export default function Checkout() {
       }
       */
 
-      await scheduleCart(user.id, serviceId!, scheduledDate, scheduledTime, selectedAddressId);
-
-      // Create booking first to get a bookingId for the payment reference
-      const bookingRes = await createBookingFromCart(user.id, {
-        serviceId: serviceId!,
-        paymentMethod: paymentMethod === 'online' ? 'PAY_NOW' : 'PAY_AFTER'
-      });
-
-      if (!bookingRes || !bookingRes.success) {
-        throw new Error(bookingRes?.message || "Failed to create booking.");
-      }
-
-      const bookingId = bookingRes?.data?.bookings?.[0]?.id;
-
       if (paymentMethod === 'online') {
         const receipt = `booking_${user.id}_${Date.now()}`;
-        // Pass bookingId as referenceId to link payment to booking
-        const paymentRes = await createPaymentOrder(finalAmount * 100, bookingId, receipt);
+        // Pass a generic referenceId for now to initialize payment order, create booking after success
+        const paymentRes = await createPaymentOrder(finalAmount * 100, user.id, receipt);
         if (!paymentRes.success) throw new Error("Failed to initialize payment");
 
         const res = await loadRazorpay();
@@ -379,23 +365,38 @@ export default function Checkout() {
           order_id: razorOrderId,
           handler: async function (response: any) {
             try {
+              setIsProcessing(true);
               await verifyPayment({
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpayOrderId: response.razorpay_order_id,
                 razorpaySignature: response.razorpay_signature
               });
 
+              // Create booking only after payment is successful
+              await scheduleCart(user.id, serviceId!, scheduledDate, scheduledTime, selectedAddressId);
+              const bookingRes = await createBookingFromCart(user.id, {
+                serviceId: serviceId!,
+                paymentMethod: 'PAY_NOW'
+              });
+
+              if (!bookingRes || !bookingRes.success) {
+                throw new Error(bookingRes?.message || "Failed to create booking after payment.");
+              }
+
+              const bookingId = bookingRes?.data?.bookings?.[0]?.id;
+
               await clearCart();
               setLocation(`/booking-success?bookingId=${bookingId}`);
             } catch (error) {
-              console.error("Verification Error", error);
-              setError("Payment verification failed. Please contact support.");
+              console.error("Verification/Booking Error", error);
+              setError("Payment verified but booking failed. Please contact support.");
               setIsProcessing(false);
             }
           },
           modal: {
             ondismiss: function () {
               setIsProcessing(false);
+              setError("Payment cancelled. Please try again.");
             }
           },
           prefill: {
@@ -412,7 +413,19 @@ export default function Checkout() {
         paymentObject.open();
 
       } else {
-        // PAY_AFTER flow: Booking is already created above
+        // PAY_AFTER flow: Create booking immediately
+        await scheduleCart(user.id, serviceId!, scheduledDate, scheduledTime, selectedAddressId);
+        const bookingRes = await createBookingFromCart(user.id, {
+          serviceId: serviceId!,
+          paymentMethod: 'PAY_AFTER'
+        });
+
+        if (!bookingRes || !bookingRes.success) {
+          throw new Error(bookingRes?.message || "Failed to create booking.");
+        }
+
+        const bookingId = bookingRes?.data?.bookings?.[0]?.id;
+
         await clearCart();
         setLocation(`/booking-success?bookingId=${bookingId}`);
         setIsProcessing(false);
@@ -420,7 +433,7 @@ export default function Checkout() {
 
     } catch (error: any) {
       console.error("Booking Error", error);
-      setError(error.message || "Failed to place order. Please try again.");
+      setError(error.message || "Failed to process request. Please try again.");
       setIsProcessing(false);
     }
   };
@@ -472,7 +485,7 @@ export default function Checkout() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-[1fr_380px] gap-8 items-start pb-20 lg:pb-0">
+        <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-8 items-start pb-20 lg:pb-0">
 
           {/* LEFT COLUMN - STEPS */}
           <div className="flex flex-col">
@@ -927,25 +940,476 @@ export default function Checkout() {
 
             </div>
 
-            {/* Fixed Bottom Bar on Mobile, Sticky on Desktop */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 lg:sticky lg:bottom-0 bg-white border-t border-gray-200 px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-base font-bold text-gray-900">Amount to pay</span>
-                <span className="text-base font-bold text-gray-900">₹{finalAmount}</span>
+          </div>
+
+        </div>
+
+        {/* MOBILE VIEW (Hidden on Desktop) */}
+        <div className="lg:hidden flex flex-col gap-6 pb-24">
+
+          {/* MOBILE: RIGHT COLUMN - SUMMARY (Moved to Top) */}
+          <div className="space-y-6">
+
+            {/* Order Details Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden p-5">
+              {items.length > 0 && (
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Details</h3>
+              )}
+
+              <div className="space-y-6">
+                {items.map((item) => (
+                  <div key={`mobile-item-${item.id}`} className="flex gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1 gap-2">
+                        <h4 className="text-sm font-medium text-gray-900 break-words">{item.name}</h4>
+                        <span className="text-sm font-medium text-gray-900 shrink-0">₹{item.price * item.quantity}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                        <span>• {item.description || "Service included"}</span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {/* Quantity Control */}
+                        <div className="flex items-center border border-[#E2E8F0] rounded-lg h-8 bg-white">
+                          <button
+                            className="w-8 h-full flex items-center justify-center text-[#7C3AED] hover:bg-[#F3E8FF] rounded-l-lg transition-colors"
+                            onClick={() => updateQuantity(item.id, -1)}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-8 flex items-center justify-center text-sm font-medium text-gray-900">
+                            {item.quantity}
+                          </span>
+                          <button
+                            className="w-8 h-full flex items-center justify-center text-[#7C3AED] hover:bg-[#F3E8FF] rounded-r-lg transition-colors"
+                            onClick={() => updateQuantity(item.id, 1)}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button className="text-sm font-medium underline text-gray-900">Edit package</button>
               </div>
-              <Button
-                disabled={isProcessing}
-                onClick={handlePlaceOrder}
-                className="w-full h-11 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold shadow-sm"
-              >
-                {isProcessing ? "Processing..." : "Proceed to pay"}
-              </Button>
-              <button className="w-full text-center text-xs text-[#7C3AED] font-medium mt-2 hover:underline">
-                View breakup
+
+              <Separator className="my-6" />
+
+              {suggestions.length > 0 && (
+                <SuggestionsCarousel suggestions={suggestions} addItem={addItem} />
+              )}
+
+              <Separator className="my-6" />
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setAvoidCalling(!avoidCalling)}
+                  className={cn(
+                    "w-5 h-5 rounded border flex items-center justify-center transition-colors",
+                    avoidCalling ? "bg-black border-black text-white" : "border-gray-300 bg-white"
+                  )}
+                >
+                  {avoidCalling && <Check className="w-3 h-3" />}
+                </button>
+                <span className="text-sm text-gray-700">Avoid calling before reaching the location</span>
+              </div>
+
+              <Separator className="my-6" />
+
+              <button onClick={() => setShowCouponModal(true)} className="w-full flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <Ticket className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">Coupons and offers</span>
+                </div>
+                <div className="flex items-center gap-1 text-[#7C3AED] font-medium text-sm">
+                  7 offers <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
               </button>
+
+              <Separator className="my-6" />
+
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment summary</h3>
+
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Item total</span>
+                  <span>₹{itemTotal}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Taxes and Fee</span>
+                  <span>₹{taxesAndFee}</span>
+                </div>
+                {tipAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Tip added</span>
+                    <span>₹{tipAmount}</span>
+                  </div>
+                )}
+              </div>
+
+              <Separator className="mb-4" />
+
+              <div className="flex justify-between items-center mb-6">
+                <span className="font-bold text-gray-900">Total amount</span>
+                <span className="font-bold text-gray-900">₹{finalAmount}</span>
+              </div>
+
+              <div className="flex justify-between items-center mb-6 text-[#7C3AED] font-bold text-sm">
+                <span>Amount to pay</span>
+                <span>₹{finalAmount}</span>
+              </div>
+
+              {/* Tip Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Add a tip to thank the Professional</h4>
+                <div className="flex gap-2">
+                  {[50, 75, 100].map(amount => (
+                    <button
+                      key={`mobile-tip-${amount}`}
+                      onClick={() => setTipAmount(amount === tipAmount ? 0 : amount)}
+                      className={cn(
+                        "flex-1 py-2 rounded-lg border text-sm font-medium transition-all relative overflow-hidden",
+                        tipAmount === amount
+                          ? "border-green-500 bg-green-50 text-green-700 font-bold"
+                          : "border-gray-200 hover:border-gray-300 text-gray-600"
+                      )}
+                    >
+                      ₹{amount}
+                      {amount === 75 && <span className="absolute top-0 right-0 text-[8px] bg-green-100 text-green-800 px-1 rounded-bl">POPULAR</span>}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setTipAmount(0)} // Placeholder for custom logic
+                    className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300"
+                  >
+                    Custom
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">100% of the tip goes to the professional.</p>
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm p-3 rounded-lg flex items-start gap-2 mb-4">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
             </div>
           </div>
 
+          {/* MOBILE: LEFT COLUMN - STEPS (Moved to Bottom) */}
+          <div className="flex flex-col">
+
+            {/* Single Compact Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+
+              {/* User Info Section */}
+              <div className="p-4 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-0.5">Send booking details to</h3>
+                  <p className="text-sm text-gray-600 truncate">{user?.phoneNo ? `+91 ${user.phoneNo}` : "No phone number"}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Address Section */}
+              <div className="p-4">
+                <div className="flex items-center gap-4 cursor-pointer" onClick={() => setStep(1)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${step > 1 ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    {step > 1 ? <CheckCircle className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-gray-900">Address</h3>
+                    {selectedAddressId && step !== 1 && (
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {addresses.find(a => a.id === selectedAddressId)?.addressLine1}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {step === 1 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                    >
+                      <div className="mt-3 space-y-3">
+                        {addresses.length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-gray-500 text-sm mb-3">You haven't added any addresses yet.</p>
+                            <Button variant="outline" className="w-full" onClick={() => setShowAddAddressModal(true)}>
+                              <Plus className="w-4 h-4 mr-2" /> Add New Address
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="grid gap-2">
+                            {addresses.map((address) => (
+                              <div
+                                key={`mobile-address-${address.id}`}
+                                onClick={() => setSelectedAddressId(address.id)}
+                                className={cn(
+                                  "relative p-3 rounded-lg border-2 transition-all cursor-pointer hover:border-gray-300",
+                                  selectedAddressId === address.id ? "border-primary bg-primary/5" : "border-gray-100 bg-white"
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <MapPin className={cn("w-4 h-4 mt-0.5", selectedAddressId === address.id ? "text-primary" : "text-gray-400")} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm text-gray-900 truncate">{address.type || "Home"}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5 break-words">{address.addressLine1}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5 truncate">{address.city}, {address.state} - {address.pincode}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            <Button variant="ghost" size="sm" className="w-full text-primary hover:text-primary hover:bg-primary/10 text-sm" onClick={() => setShowAddAddressModal(true)}>
+                              <Plus className="w-4 h-4 mr-2" /> Add Another Address
+                            </Button>
+                          </div>
+                        )}
+
+                        <Button
+                          disabled={!selectedAddressId}
+                          onClick={() => setStep(2)}
+                          className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                        >
+                          Select address
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <Separator />
+
+              {/* Slot Section */}
+              <div className="p-4">
+                <div className="flex items-center gap-4 cursor-pointer" onClick={() => selectedAddressId && setStep(2)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${step > 2 ? 'bg-green-500 text-white' : step >= 2 ? 'bg-gray-100 text-primary' : 'bg-gray-100 text-gray-400'}`}>
+                    {step > 2 ? <CheckCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-sm font-semibold ${step >= 2 ? 'text-gray-900' : 'text-gray-400'} truncate`}>Slot</h3>
+                    {selectedSlot && step !== 2 && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {bookingType === 'instant' ? "Instant (~30 mins)" : `${format(selectedDate, "EEE, MMM d")} at ${format(new Date(`2000-01-01T${selectedSlot.start}`), "h:mm a")}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {step === 2 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                    >
+                      <div className="mt-3 space-y-4">
+                        <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-full">
+                          <button
+                            onClick={() => setBookingType('scheduled')}
+                            className={cn(
+                              "w-full py-2 text-sm font-medium rounded-md bg-white text-primary shadow-sm"
+                            )}
+                          >
+                            <Calendar className="w-4 h-4 inline-block mr-1 mb-0.5" /> Schedule Service
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                            {[0, 1, 2, 3].map((offset) => {
+                              const date = new Date();
+                              date.setDate(date.getDate() + offset);
+                              const isSelected = format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+                              return (
+                                <button
+                                  key={`mobile-date-${offset}`}
+                                  onClick={() => {
+                                    setSelectedDate(date);
+                                    setAvailableSlots([]);
+                                    setSelectedSlot(null);
+                                  }}
+                                  className={cn(
+                                    "flex flex-col items-center min-w-[4rem] p-2.5 rounded-lg border-2 transition-all",
+                                    isSelected ? "border-primary bg-primary/5 text-primary" : "border-gray-100 text-gray-500 hover:border-gray-200"
+                                  )}
+                                >
+                                  <span className="text-xs font-medium uppercase">{offset === 0 ? "Today" : format(date, "EEE")}</span>
+                                  <span className="font-bold text-lg">{format(date, "d")}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+
+                          {loadingSlots ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              {[1, 2, 3, 4, 5, 6].map(i => <div key={`mobile-skel-${i}`} className="h-9 bg-gray-100 animate-pulse rounded-md" />)}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                              {availableSlots.length > 0 ? availableSlots.map((slot, i) => (
+                                <button
+                                  key={`mobile-slot-${i}`}
+                                  disabled={!slot.available}
+                                  onClick={() => setSelectedSlot(slot)}
+                                  className={cn(
+                                    "py-2 px-1 rounded-md text-xs font-medium border transition-all",
+                                    selectedSlot?.start === slot.start
+                                      ? "bg-primary text-white border-primary"
+                                      : slot.available
+                                        ? "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                                        : "bg-gray-50 text-gray-300 border-transparent cursor-not-allowed"
+                                  )}
+                                >
+                                  {format(new Date(`2000-01-01T${slot.start}`), "h:mm a")}
+                                </button>
+                              )) : (
+                                <div className="col-span-full text-center py-3 text-gray-500 text-xs">
+                                  Select a date to view available slots.
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <Button
+                            disabled={!selectedSlot}
+                            onClick={() => setStep(3)}
+                            className="w-full"
+                          >
+                            Continue to Payment
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <Separator />
+
+              {/* Payment Method Section */}
+              <div className="p-4">
+                <div className="flex items-center gap-4 cursor-pointer" onClick={() => selectedSlot && setStep(3)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${step === 3 ? 'bg-gray-100 text-primary' : 'bg-gray-100 text-gray-400'}`}>
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-sm font-semibold ${step >= 3 ? 'text-gray-900' : 'text-gray-400'} truncate`}>Payment Method</h3>
+                    {step === 3 && <p className="text-xs text-gray-500">Select how you want to pay</p>}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {step === 3 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                    >
+                      <div className="mt-3 space-y-3">
+                        <div
+                          onClick={() => setPaymentMethod('online')}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
+                            paymentMethod === 'online' ? "border-primary bg-primary/5" : "border-gray-100 hover:border-gray-200"
+                          )}
+                        >
+                          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <Zap className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm text-gray-900 truncate">Pay Online</h4>
+                            <p className="text-xs text-gray-500 truncate">Cards, UPI, Netbanking</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'online' ? 'border-primary' : 'border-gray-300'}`}>
+                            {paymentMethod === 'online' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                          </div>
+                        </div>
+
+                        <div
+                          onClick={() => setPaymentMethod('after')}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
+                            paymentMethod === 'after' ? "border-primary bg-primary/5" : "border-gray-100 hover:border-gray-200"
+                          )}
+                        >
+                          <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                            <Clock className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm text-gray-900 truncate">Pay After Service</h4>
+                            <p className="text-xs text-gray-500 truncate">Cash or Online after job is done</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'after' ? 'border-primary' : 'border-gray-300'}`}>
+                            {paymentMethod === 'after' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Embedded Cancellation Policy on Mobile */}
+            <div className="relative bg-gray-50/50 pt-6">
+              <h4 className="text-lg font-bold text-gray-900 mb-1">Cancellation policy</h4>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Free cancellations if done more than 12 hrs before the service. A fee will be charged otherwise.
+              </p>
+              <button className="text-sm font-semibold text-gray-900 underline mt-2">Read full policy</button>
+            </div>
+
+          </div>
+
+          {/* Fixed Bottom Bar on Mobile */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-gray-200 px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-base font-bold text-gray-900">Amount to pay</span>
+              <span className="text-base font-bold text-gray-900">₹{finalAmount}</span>
+            </div>
+            <Button
+              disabled={isProcessing}
+              onClick={handlePlaceOrder}
+              className="w-full h-11 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-bold shadow-sm"
+            >
+              {isProcessing ? "Processing..." : "Proceed to pay"}
+            </Button>
+            <button className="w-full text-center text-xs text-[#7C3AED] font-medium mt-2 hover:underline">
+              View breakup
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Fixed Bottom Bar (Visible Only on Desktop) */}
+        <div className="hidden lg:block fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+          <div className="container mx-auto max-w-4xl flex items-center justify-between">
+            <div>
+              <span className="block text-xs font-bold text-gray-500">Amount to pay</span>
+              <span className="block text-2xl font-bold text-gray-900">₹{finalAmount}</span>
+            </div>
+            <Button
+              disabled={isProcessing}
+              onClick={handlePlaceOrder}
+              className="w-80 h-12 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-lg font-bold shadow-sm"
+            >
+              {isProcessing ? "Processing..." : "Proceed to pay"}
+            </Button>
+          </div>
         </div>
       </main >
       {/* Coupons & Offers Modal */}

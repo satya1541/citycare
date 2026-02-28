@@ -209,11 +209,6 @@ export function ThoughtfulCurations() {
                     className="flex-shrink-0 cursor-pointer"
                     style={{ width: '288px' }}
                     onClick={() => {
-                      if (!isAuthenticated) {
-                        setLoginReason("Please login for best services according to your location");
-                        setShowLoginModal(true);
-                        return;
-                      }
                       setIsMuted(true);
                       setSelectedVideo(item);
                     }}

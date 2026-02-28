@@ -34,18 +34,15 @@ export function CartDrawer() {
                   {isAuthenticated ? "Lets add some services" : "Please login to add services to cart"}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    setShowLoginModal(true);
-                  }
-                  setIsOpen(false);
-                }}
-                className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover:text-primary px-8"
-              >
-                {isAuthenticated ? "Explore services" : "Login / Sign up"}
-              </Button>
+              <Link href="/">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-xl border-primary/20 text-primary hover:bg-primary/5 hover:text-primary px-8"
+                >
+                  Explore services
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="space-y-6">
